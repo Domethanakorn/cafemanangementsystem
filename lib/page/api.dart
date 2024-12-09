@@ -1,25 +1,20 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-Future<List<dynamic>> apiGetPhotos() async {
-  var response =
-      await http.get(Uri.parse('http://dummyapi.online/api/pokemon'));
+Future<List<dynamic>> apiGetBeverages() async {
+  var response = await http.get(Uri.parse('https://admin-panel-nine-beige.vercel.app/api/beverages'));
   if (response.statusCode == 200) {
-    var list = jsonDecode(response.body) as List<dynamic>;
-    var listRang = list.getRange(0,49).toList();
-    return listRang;
+    return jsonDecode(response.body) as List<dynamic>;
   } else {
-    throw Exception('Error');
+    throw Exception('Error fetching beverages');
   }
 }
 
-Future<Map<String, dynamic>> apiGetphoto(int id) async {
-  var response =
-      await http.get(Uri.parse('http://dummyapi.online/api/pokemon/$id'));
+Future<List<dynamic>> apiGetDesserts() async {
+  var response = await http.get(Uri.parse('https://admin-panel-nine-beige.vercel.app/api/desserts'));
   if (response.statusCode == 200) {
-    var map = jsonDecode(response.body) as Map<String, dynamic>;
-    return map;
+    return jsonDecode(response.body) as List<dynamic>;
   } else {
-    throw Exception('Error');
+    throw Exception('Error fetching desserts');
   }
 }

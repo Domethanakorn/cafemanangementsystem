@@ -65,8 +65,7 @@ class HomePageContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Hello Wannasa", style: AppWidget.boldTextFildStyle()),
-          SizedBox(height: 18.0),
+
           Text("Cafe Management System", style: AppWidget.HeadlineTextFildStyle()),
           Text("Discover and Get Great Coffee", style: AppWidget.LightTextFildStyle()),
           SizedBox(height: 15.0),
@@ -75,7 +74,7 @@ class HomePageContent extends StatelessWidget {
           // Wrap Test_Pokemon in Expanded to prevent layout overflow
           Expanded(
 
-            child: Test_Pokemon(),
+            child: Test_BeveragesAndDesserts(),
           ),
         ],
       ),
@@ -193,25 +192,30 @@ class _ShowItemState extends State<ShowItem> {
   }
 }
 
-class Test_Pokemon extends StatefulWidget {
+class Test_BeveragesAndDesserts extends StatefulWidget {
   @override
-  State<Test_Pokemon> createState() => _TestPokemonState();
+  State<Test_BeveragesAndDesserts> createState() => _TestBeveragesAndDessertsState();
 }
 
-class _TestPokemonState extends State<Test_Pokemon> {
-  late Future<List<dynamic>> futurePhotos;
+class _TestBeveragesAndDessertsState extends State<Test_BeveragesAndDesserts> {
+  late Future<List<dynamic>> futureBeverages;
+  late Future<List<dynamic>> futureDesserts;
 
-  var listPhotos = [];
+  var listBeverages = [];
+  var listDesserts = [];
   var _apiCalling = true;
+
   @override
   void initState() {
     super.initState();
-    futurePhotos = apiGetPhotos();
 
-    futurePhotos.then((value) {
-      for (var p in value) {
-        listPhotos.add(p);
-      }
+    // เรียก API พร้อมกันสำหรับ Beverages และ Desserts
+    futureBeverages = apiGetBeverages();
+    futureDesserts = apiGetDesserts();
+
+    Future.wait([futureBeverages, futureDesserts]).then((results) {
+      listBeverages = results[0];
+      listDesserts = results[1];
       setState(() => _apiCalling = false);
     });
   }
@@ -219,36 +223,79 @@ class _TestPokemonState extends State<Test_Pokemon> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: const Text('Beverages & Desserts')),
       body: _apiCalling
           ? Center(child: CircularProgressIndicator()) // แสดง Loading
-          : listPhotos.isEmpty
-          ? Center(child: Text('No Data Available')) // กรณีไม่มีข้อมูล
-          : buildListView(), // แสดง ListView เมื่อข้อมูลพร้อม
+          : listBeverages.isEmpty && listDesserts.isEmpty
+          ? Center(child: Text('No Data Available')) // ไม่มีข้อมูล
+          : buildTabs(), // แสดงข้อมูลในรูปแบบ Tab
     );
   }
 
-  Widget buildListView() => ListView.separated(
-    itemBuilder: (ctx, index) => buildListTile(index),
-    separatorBuilder: (ctx, index) =>
-    const Divider(thickness: 1, color: Colors.indigo),
-    itemCount: listPhotos.length,
+  Widget buildTabs() => DefaultTabController(
+    length: 2,
+    child: Column(
+      children: [
+        TabBar(
+          tabs: const [
+            Tab(text: 'Beverages'),
+            Tab(text: 'Desserts'),
+          ],
+        ),
+        Expanded(
+          child: TabBarView(
+            children: [
+              buildListView(listBeverages, 'Beverage'),
+              buildListView(listDesserts, 'Dessert'),
+            ],
+          ),
+        ),
+      ],
+    ),
   );
 
-  Widget buildListTile(int index) => ListTile(
+  Widget buildListView(List<dynamic> list, String category) => ListView.separated(
+    itemBuilder: (ctx, index) => buildListTile(list, index, category),
+    separatorBuilder: (ctx, index) =>
+    const Divider(thickness: 1, color: Colors.indigo),
+    itemCount: list.length,
+  );
+
+  Widget buildListTile(List<dynamic> list, int index, String category) => ListTile(
     contentPadding: const EdgeInsets.only(top: 5, bottom: 5),
     leading: ClipRRect(
       borderRadius: BorderRadius.circular(15),
-      child: Image.network(listPhotos[index]['image_url'] ?? ''),
+      child: Image.network(
+        category == 'Beverage'
+            ? list[index]['beveragePicture'] ?? '' // สำหรับเครื่องดื่ม
+            : list[index]['dessertPicture'] ?? '', // สำหรับขนมหวาน
+        fit: BoxFit.cover,
+      ),
     ),
-    title: Text(listPhotos[index]['pokemon'] ?? 'Unknown'),
+    title: Text(list[index]['name'] ?? 'Unknown'),
+    subtitle: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Category: $category'),
+        Text('Price: \$${list[index]['price'] ?? 0}'),
+      ],
+    ),
     trailing: const Icon(Icons.arrow_forward_ios),
     onTap: () {
+      // ส่งข้อมูลทั้งหมดไปยังหน้า DetailPage
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => DetailPage(photoId: listPhotos[index]['id']),
+          builder: (context) => DetailPage(
+            name: list[index]['name'],
+            price: list[index]['price'],
+            description: list[index]['description'] ?? 'No description available',
+            imageUrl: list[index]['beveragePicture'] ?? list[index]['dessertPicture'] ?? 'https://via.placeholder.com/150',
+            category: list[index]['category'],
+          ),
         ),
       );
     },
   );
+
 }
